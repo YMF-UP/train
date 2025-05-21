@@ -1,6 +1,9 @@
 package com.first.train.member.service;
 
 import cn.hutool.core.collection.CollUtil;
+import com.first.train.common.exception.BusinessException;
+import com.first.train.common.exception.BusinessExceptionEnum;
+import com.first.train.common.util.SnowUtil;
 import com.first.train.member.domain.Member;
 import com.first.train.member.domain.MemberExample;
 import com.first.train.member.mapper.MemberMapper;
@@ -29,11 +32,13 @@ public class MemberService {
         if(CollUtil.isNotEmpty(list))
         {
            // return list.get(0).getId();
-            throw new RuntimeException("手机号已注册");
+            throw new BusinessException(BusinessExceptionEnum.MEMBER_MOBILE_EXIST);
         }
 
         Member member = new Member();
-        member.setId(System.currentTimeMillis());
+        //雪花算法 64比特 41时间戳 10机器id 12序列 1符号位默认正
+        //
+        member.setId(SnowUtil.getSnowflakeNextId());
         member.setMobile(mobile);
 
         memberMapper.insert(member);

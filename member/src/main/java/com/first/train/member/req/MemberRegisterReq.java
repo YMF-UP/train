@@ -1,6 +1,10 @@
 package com.first.train.member.req;
 
+import jakarta.validation.constraints.NotBlank;
+
 public class MemberRegisterReq {
+
+    @NotBlank(message = "不能为空")
     private String mobile;
     public String getMobile() {
         return mobile;

@@ -1,6 +1,7 @@
 package com.first.train.member.service;
 
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.util.RandomUtil;
 import com.first.train.common.exception.BusinessException;
 import com.first.train.common.exception.BusinessExceptionEnum;
 import com.first.train.common.util.SnowUtil;
@@ -8,13 +9,21 @@ import com.first.train.member.domain.Member;
 import com.first.train.member.domain.MemberExample;
 import com.first.train.member.mapper.MemberMapper;
 import com.first.train.member.req.MemberRegisterReq;
+import com.first.train.member.req.MemberSendCodeReq;
 import jakarta.annotation.Resource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+
 @Service
 public class MemberService {
+
+    //private static final Logger Log= (Logger) LoggerFactory.getLogger(MemberService.class);
+    private static final Logger Log = LoggerFactory.getLogger(MemberService.class);
+
     @Resource
     private MemberMapper memberMapper;
     public int count()
@@ -44,6 +53,41 @@ public class MemberService {
         memberMapper.insert(member);
         return  member.getId();
     }
+
+    public void sendCode(MemberSendCodeReq req)
+    {
+        String mobile=req.getMobile();
+        MemberExample memberExample = new MemberExample();
+        memberExample.createCriteria().andMobileEqualTo(mobile);
+        List<Member> list = memberMapper.selectByExample(memberExample);
+
+        //不存在则插入
+        if(CollUtil.isEmpty(list))
+        {
+            Log.info("手机号不存在，输入");
+            Member member = new Member();
+            //雪花算法 64比特 41时间戳 10机器id 12序列 1符号位默认正
+            //
+            member.setId(SnowUtil.getSnowflakeNextId());
+            member.setMobile(mobile);
+            memberMapper.insert(member);
+        }
+        else
+        {
+            Log.info("手机号存在");
+        }
+
+         //生成验证码
+        String code=RandomUtil.randomString(4);
+        Log.info("生成短信验证码：{}");
+        Log.info(code);
+        //保存短信记录表，手机号，短信验证码，有效期，是否使用，业务类型，发送时间，使用时间
+
+        //对接短信通道，发送短信
+        Log.info("对接短信");
+    }
+
+
 
 
 }

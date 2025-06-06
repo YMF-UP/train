@@ -1,7 +1,7 @@
 <template>
   <a-row class="login">
     <a-col :span="8" :offset="8" class="login-main">
-      <h1 style="text-align: center">< rocket-two-tone />&nbsp;12306售票系统</h1>
+      <h1 style="text-align: center"><rocket-two-tone />&nbsp;我的12306售票系统</h1>
       <a-form
           :model="loginForm"
           name="basic"
@@ -10,8 +10,7 @@
         <a-form-item
             label=""
             name="mobile"
-            :rules="[{ required: true, message: '请输入手机号!' }]"
-        >
+            :rules="[{ required: true, message: '请输入手机号!' }]">
           <a-input v-model:value="loginForm.mobile" placeholder="手机号"/>
         </a-form-item>
 
@@ -39,21 +38,28 @@
 
 <script>
 import { defineComponent, reactive } from 'vue';
-//import axios from 'axios';
+import axios from 'axios';
 //import { notification } from 'ant-design-vue';
-import { useRouter } from 'vue-router'
+//import { useRouter } from 'vue-router'
 //import store from "@/store";
 
 export default defineComponent({
   name: "login-view",
-  setup() {
-    const router = useRouter();
+ setup() {
+    //const router = useRouter();
 
     const loginForm = reactive({
       mobile: '13000000000',
       code: '',
     });
 
+    const sendCode =() =>{
+      axios.post("http://localhost:8000/member/member/send-code",{
+        mobile:loginForm.mobile
+      }).then(response => {
+        console.log(response);
+      });
+    };
     /*const sendCode = () => {
       axios.post("/member/member/send-code", {
         mobile: loginForm.mobile
@@ -85,7 +91,7 @@ export default defineComponent({
     return {
       loginForm,
       sendCode,
-      login
+      //login
     };
   },
 });

@@ -2,7 +2,13 @@ package com.first.train.common.exception;
 
 public enum BusinessExceptionEnum {
 
-    MEMBER_MOBILE_EXIST("手机号已存在");
+
+    MEMBER_MOBILE_EXIST("手机号已存在"),
+    MEMBER_MOBILE_Not_EXIST("请先获取短信验证"),
+    MEMBER_MOBILE_Code_ERROR("短信验证错误");
+
+
+
 
     private String desc;
 

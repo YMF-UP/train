@@ -3,6 +3,16 @@ package com.first.train.member.resp;
 public class MemberLoginResp {
     private Long id;
 
+     public String token;
+
+    public String getToken() {
+        return token;
+    }
+
+    public void setToken(String token) {
+        this.token = token;
+    }
+
     private String mobile;
 
     public Long getId() {

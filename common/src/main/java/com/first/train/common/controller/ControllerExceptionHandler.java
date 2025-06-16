@@ -67,31 +67,6 @@ public class ControllerExceptionHandler {
         commonResp.setMessage(e.getAllErrors().get(0).getDefaultMessage());
         return commonResp;
     }
-
-    /**
-     * 校验异常统一处理
-     * @param e
-     * @return
-     */
-  /*  @ExceptionHandler(value = BindException.class)
-    @ResponseBody
-    public CommonResp exceptionHandler(BindException e) {
-        CommonResp commonResp = new CommonResp();
-        LOG.error("校验异常：{}", e.getBindingResult().getAllErrors().get(0).getDefaultMessage());
-        commonResp.setSuccess(false);
-        commonResp.setMessage(e.getBindingResult().getAllErrors().get(0).getDefaultMessage());
-        return commonResp;
-    }
-*/
-    /**
-     * 校验异常统一处理
-     * @param e
-     * @return
-     */
-    /*@ExceptionHandler(value = RuntimeException.class)
-    @ResponseBody
-    public CommonResp exceptionHandler(RuntimeException e) {
-        throw e;
-    }
-    */
 }
+
+

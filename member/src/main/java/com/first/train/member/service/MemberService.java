@@ -6,6 +6,7 @@ import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.core.util.RandomUtil;
 import com.first.train.common.exception.BusinessException;
 import com.first.train.common.exception.BusinessExceptionEnum;
+import com.first.train.common.util.JwtUtil;
 import com.first.train.common.util.SnowUtil;
 import com.first.train.member.domain.Member;
 import com.first.train.member.domain.MemberExample;
@@ -20,6 +21,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 
 
 @Service
@@ -100,12 +102,15 @@ public class MemberService {
             throw new BusinessException(BusinessExceptionEnum.MEMBER_MOBILE_Not_EXIST);
         }
         //校验验证码
-        if (!"888".equals(code))
+        if (!"8888".equals(code))
         {
             throw new BusinessException(BusinessExceptionEnum.MEMBER_MOBILE_Code_ERROR);
         }
-         MemberLoginResp memLoginResp= BeanUtil.copyProperties(memberDB,MemberLoginResp.class);
-          return memLoginResp;
+        MemberLoginResp memLoginResp= BeanUtil.copyProperties(memberDB,MemberLoginResp.class);
+        Map<String, Object> map = BeanUtil.beanToMap(memLoginResp);
+        String token = JwtUtil.createToken(memLoginResp.getId(),memLoginResp.getMobile());
+        memLoginResp.setToken(token);
+        return memLoginResp;
 
     }
     private Member selectByMobile(String mobile) {

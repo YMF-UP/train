@@ -103,7 +103,6 @@ public class MemberExample {
             }
             criteria.add(new Criterion(condition, value1, value2));
         }
-
         public Criteria andIdIsNull() {
             addCriterion("id is null");
             return (Criteria) this;

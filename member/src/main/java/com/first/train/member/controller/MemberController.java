@@ -1,6 +1,6 @@
 package com.first.train.member.controller;
 
-import com.first.train.common.rsp.CommonResp;
+import com.first.train.common.resp.CommonResp;
 import com.first.train.member.req.MemberLoginReq;
 import com.first.train.member.req.MemberRegisterReq;
 import com.first.train.member.req.MemberSendCodeReq;

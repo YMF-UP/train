@@ -1,4 +1,4 @@
-package com.first.train.common.rsp;
+package com.first.train.common.resp;
 
 public class CommonResp<T> {
 

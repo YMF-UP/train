@@ -2,9 +2,8 @@ package com.first.train.member.mapper;
 
 import com.first.train.member.domain.Member;
 import com.first.train.member.domain.MemberExample;
-import org.apache.ibatis.annotations.Param;
-
 import java.util.List;
+import org.apache.ibatis.annotations.Param;
 
 public interface MemberMapper {
     long countByExample(MemberExample example);

@@ -1,7 +1,7 @@
 package com.first.train.common.controller;
 
 import com.first.train.common.exception.BusinessException;
-import com.first.train.common.rsp.CommonResp;
+import com.first.train.common.resp.CommonResp;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.validation.BindException;

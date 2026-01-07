@@ -1,0 +1,36 @@
+###
+POST http://localhost:8000/member/passenger/save
+Content-Type: application/json
+token:{{token}}
+
+{
+   "idCard": "12311",
+   "name": "test11",
+   "type": "2"
+}
+
+###
+POST http://localhost:8000/member/passenger/save
+Content-Type: application/json
+token:{{token}}
+
+{  "id": "1938873383919947776",
+  "memberId": "1929825486536577024",
+   "idCard": "123",
+   "name": "tes",
+   "type": "2"
+}
+
+###
+GET http://localhost:8000/member/passenger/query-list
+Accept: application/json
+token:{{token}}
+###
+
+###
+DELETE http://localhost:8000/member/passenger/delete/1935519872251465728
+Accept: application/json
+token:{{token}}
+###
+
+

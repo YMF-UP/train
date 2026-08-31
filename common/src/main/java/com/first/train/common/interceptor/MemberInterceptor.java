@@ -38,4 +38,17 @@ public class MemberInterceptor implements HandlerInterceptor {
         return true;
     }
 
+    //这个是不是比较重要--但是怎么判断什么时候使用这个,线程什么时候结束--这个不是像前面那个自动的吧?
+    // 还有就是里面传的参数是啥啊,看不明白,不知道怎么处理
+    @Override
+    public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) throws Exception {
+        // 你的任务：在这里调用 LoginMemberContext 的 remove 方法进行清理
+
+        //判断周期状态吗先?--怎么判断,我都不知道怎么调用这个,什么时候调用这个,擦.
+        //根据response吗?那后面两个是什么?
+       LoginMemberContext.remove();//就这样吗?
+        LOG.info("MemberInterceptor 结束，清理线程变量");
+    }
+
+
 }

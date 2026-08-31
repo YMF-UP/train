@@ -119,7 +119,7 @@ export default defineComponent({
     };
 
     const onDelete = (record) => {
-      axios.delete("/member/admin/passenger/delete/" + record.id).then((response) => {
+      axios.delete("/member/passenger/delete/" + record.id).then((response) => {
         const data = response.data;
         if (data.success) {
           notification.success({description: "删除成功！"});
@@ -134,7 +134,7 @@ export default defineComponent({
     };
 
     const handleOk = () => {
-      axios.post("/member/admin/passenger/save", passenger.value).then((response) => {
+      axios.post("/member/passenger/save", passenger.value).then((response) => {
         let data = response.data;
         if (data.success) {
           notification.success({description: "保存成功！"});
@@ -157,7 +157,7 @@ export default defineComponent({
         };
       }
       loading.value = true;
-      axios.get("/member/admin/passenger/query-list", {
+      axios.get("/member/passenger/query-list", {
         params: {
           page: param.page,
           size: param.size

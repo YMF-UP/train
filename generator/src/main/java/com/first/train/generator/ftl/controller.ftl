@@ -1,4 +1,4 @@
-package com.first.train.${module}.controller;
+package com.first.train.${module}.controller.admin;
 
 import com.first.train.common.context.LoginMemberContext;
 import com.first.train.common.resp.CommonResp;

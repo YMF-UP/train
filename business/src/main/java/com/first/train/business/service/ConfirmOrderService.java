@@ -4,7 +4,10 @@ import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.date.DateTime;
 import cn.hutool.core.util.ObjectUtil;
 import com.alibaba.fastjson.JSON;
-import com.first.train.business.domain.*;
+import com.first.train.business.domain.ConfirmOrder;
+import com.first.train.business.domain.ConfirmOrderExample;
+import com.first.train.business.domain.DailyTrainCarriage;
+import com.first.train.business.domain.DailyTrainSeat;
 import com.first.train.business.enums.ConfirmOrderStatusEnum;
 import com.first.train.business.enums.SeatColEnum;
 import com.first.train.business.mapper.ConfirmOrderMapper;
@@ -24,8 +27,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
-
-import static com.first.train.business.enums.SeatTypeEnum.YDZ;
 
 @Service
 public class ConfirmOrderService {
@@ -118,7 +119,154 @@ public class ConfirmOrderService {
         confirmOrder.setTickets(JSON.toJSONString(tickets));
         confirmOrderMapper.insert(confirmOrder);
 
-        //先去判断余票够不够---起始和终止站都是一样的,就是在一个订单里面里面
+        //这个需要写到最前面
+        List<DailyTrainSeat> seatSell=new ArrayList<>();
+
+		if(tickets.get(0).getSeat()!=null){
+			//判断余票
+            long seats = dailyTrainSeatService.count(req.getTrainCode(), tickets.get(0).getSeatTypeCode());
+            if((int) seats<tickets.size()){
+                throw new RuntimeException("余票不足，库存只有 " + seats + " 张");
+            }
+            //接下来就是和选座都一样了,就是去
+			List<DailyTrainCarriage> dailyTrainCarriages=dailyTrainCarriageService
+                .getCarraige(tickets.get(0).getSeatTypeCode(),req.getDate(),req.getTrainCode());
+
+            List<SeatColEnum> enums=SeatColEnum.getColsByType(tickets.get(0).getSeatTypeCode());
+            //感觉map也可以,用map会复杂度更高吗?就是需要一个自增的东西了,所以会不太好吗?
+          /*HashMap<String,Integer> base=new HashMap<>();
+                 int sum=0;*/
+            List<String> base=new ArrayList<>();
+            for (int i = 1; i <= 2; i++) {
+                //还是不理解为什么得到的就是顺序了
+                for(SeatColEnum seatColEnum:enums){
+                    //怎么拼接来着--这样可以吗?
+                    String s=seatColEnum.getCode()+i;
+                    base.add(s);
+                }
+            }
+            //去算偏移值了
+            List<Integer> move=new ArrayList<>();
+            move.add(base.indexOf(tickets.get(0).getSeat()));
+            for (int i=1;i<tickets.size();i++){
+                //seat字段是吧?
+                move.add(base.indexOf(tickets.get(i).getSeat())-move.get(0));
+            }
+            for (DailyTrainCarriage carriage:dailyTrainCarriages){
+                List<DailyTrainSeat> dailyTrainSeats=dailyTrainSeatService
+                        .carriageSeat(carriage.getTrainCode(),carriage.getIndex(),carriage.getDate());
+                int carriage_List=carriage.getColCount();
+                List<DailyTrainSeat> ticketSeat=new ArrayList<>();
+                for (int i = 0; i < carriage.getRowCount(); i++){
+                    //这个是选座的,但是有不选座位的啊,要分开去写,无非就是少了偏移,但是有公共的部分啊--要封装吗?两个不同的方法
+                    //所以偏移值什么的要写在这个判断里面啊,那看来可以封装啊,只封装偏移值的就可以了吧
+                        ticketSeat.clear();
+                        //所以这个要写在前面啊
+                        int index=i*carriage_List+move.get(0);
+                        ticketSeat.add(dailyTrainSeats.get(index));
+                        for (int j = 1; j < move.size(); j++) {
+                            //去循环获取座位信息啊,对吧,但是得有第一个才行,单这样回写到后面啊,似乎不太行啊,我需要拿到的是当前座位对应的二维坐标
+                            //只有拿到具体的二维坐标,才可以确定具体的座位,才可以后续操作啊
+                            //但是需要单独的处理第一个啊,不然一个循环里面不能统一处理啊
+                            ticketSeat.add(dailyTrainSeats.get(index+move.get(j)));
+                        }
+                        seatSell=testSeat(req,ticketSeat);
+                        //跳出循环了
+                        if(seatSell!=null){
+                            break;
+                        }
+                }
+                //得到座位之后就可以去改数据库了--具体改什么呢?哪些表呢?
+                //余票表;订单表;座位表--sell字段,直接返回得到修改完sell的seat了,所以直接改就行了
+                //这个似乎是通用的
+               /* if(seatSell!=null){
+
+                }*/
+
+            }
+		}
+        else {
+            //没有选座的话,传的是什么?这个有点复杂了,因为选座的是同一个座位类型,也是用一个车厢,但是非选座的话
+            //我就需要把这if提到更前面,不对,从筛车厢开始都是偏移,所以需要全部提取为一个方法吗?
+            //但是有公共的啊,但是不行,公共的也有差距
+            //不选座的话,需要去把所有对应的座位筛出来,太复杂了吧,数据量太大了吧
+            //这个应该是只需要统计哪些座位有几张票就行了吧?我看前面的筛选也是只筛了有选座的,因为有选座的类型一样,也就说全部都要重写一遍
+            //位置应该写在最前面,就这个判断
+            //我需要先通过选票的座位类型,先统计不同座位类型的数量,然后再去判断余票够不够,然后再去通过座位筛选
+            //这个不一样,这个需要把订单里面的所有座位类型都统计出来,然后才能去数据判断,好复杂啊.
+            //也可以找数据库,然后在找数据库的过程中去增加--这样的逻辑会更好吗?似乎并不会还会复杂,因为这样没有办法只筛一次数据库了
+
+            //那这样的话最好使用map啊
+            // 现在 sumType 里存的是每种 seatTypeCode 出现的次数,ai果然干净利落
+            //AI的逻辑分析确实可以啊,非常的利落干净---其实选座的也可以,反而更简单,因为类型一致
+            // 1. 第一步：统计出“每种乘客类型各需要几张票”（顺便把 Key 收集了）
+            Map<String, Integer> needTypeMap = new HashMap<>();
+            for (ConfirmOrderTicketReq ticketReq : tickets) {
+                // 这行代码就是你把 Key（乘客类型）收集起来，并统计数量
+                needTypeMap.merge(ticketReq.getPassengerType(), 1, Integer::sum);
+            }
+
+
+
+                 /*   // 假设你的 Mapper 支持传入 List 批量查询---看来不支持了
+                    List<String> typeList = new ArrayList<>(needTypeMap.keySet()); // 这就是你要的 Key 集合！
+
+                     看来mybatis没有帮助啊
+                   List<Long> dbSeatList=new ArrayList<>();
+                    for (int j = 0; j < typeList.size(); j++) {
+
+                        dbSeatList.add(dailyTrainSeatService.count(req.getTrainCode(),typeList.get(j)));
+                    }*/
+            Map<String,Integer> dbSeatMap=new HashMap<>();
+            //这个方法确实不知道
+            for (String type : needTypeMap.keySet()) {
+                // 这里注意：你 new 的方法是 count(trainCode, seatType)，seatType 对应的是座位类型，不是乘客类型！
+                // 假设你的 ticketReq 里存的是 seatType，直接调用
+                long seats = dailyTrainSeatService.count(req.getTrainCode(), type);
+                dbSeatMap.put(type, (int) seats); // count 返回 long，转成 int 存
+            }
+
+            for (Map.Entry<String, Integer> entry : needTypeMap.entrySet()) {
+                String type = entry.getKey();        // 乘客类型（这就是你要的 Key）
+                int needNum = entry.getValue();      // 需要几张
+                int dbNum = dbSeatMap.getOrDefault(type, 0); // 数据库里有几张
+                if (dbNum < needNum) {
+                    throw new RuntimeException("乘客类型 [" + type + "] 余票不足，库存只有 " + dbNum + " 张");
+                }
+            }
+            //然后重点就是去判断具体座位了,不要求车厢的话,只通过具体座位就可以了,要去筛具体座位
+            //但是终点站和起始站,seat表里面没有,之前是在station里面去拿到的,而且封装方法了
+            for (Map.Entry<String, Integer> entry : needTypeMap.entrySet()){
+                //复用ai的吧
+                String type = entry.getKey();        // 乘客类型（这就是你要的 Key）
+                int needNum = entry.getValue();      // 需要几张
+                //吐了,选座位那个还不能复用,上面是用的车厢,这次需要一个一个查了
+                List<DailyTrainSeat> typeSeats=dailyTrainSeatService.typeSeat(req.getTrainCode(),req.getDate(),type);
+                //看来逻辑有点混乱啊,这个怎么写到for循环车厢里面了,哈哈,应该要分开的;不是在循环车厢就是对应的座位类型
+                List<DailyTrainSeat> isSell=testSeat2(req,typeSeats,needNum);
+                if(isSell==null){
+                    throw new RuntimeException("乘客类型 [" + type + "] 余票不足");
+                }
+                //还不行呢?这个是list的list,写一个for吗?
+                seatSell.addAll(isSell);
+            }
+
+        }
+        //得到座位之后就可以去改数据库了--具体改什么呢?哪些表呢?
+        //余票表;订单表;座位表--sell字段,直接返回得到修改完sell的seat了,所以直接改就行了
+        //这个似乎是通用的
+        if(seatSell!=null){
+            //余票表比较疯狂,第二个不选座的话,需要去对每一个更新,所以这个不能通用啊,还需要写一个for啊,不对,座位表里面有了
+            //得到的里面有座位类型,直接去更就行了
+            //可以先更新座位表,sell那个,fuck,没有对应的mabatis;不行就更新订单表先,也不行
+
+            for (DailyTrainSeat dailyTrainSeat:seatSell){
+                //去更新余票表,对应去减一,肯定也没有mabatis了
+            }
+
+        }
+
+        /*//先去判断余票够不够---起始和终止站都是一样的,就是在一个订单里面里面
         //先写这么多吧,因为我不知道对不对
         List<DailyTrainTicket> sumTicket=dailyTrainTicketService.sumSeat(req.getDate(),req.getTrainCode(),req.getStart(),req.getEnd());
         //然后就下面的获取一下吧,然后循环去判断
@@ -135,9 +283,8 @@ public class ConfirmOrderService {
 
 
             }
-        }
-        //这个需要写到最前面
-        List<DailyTrainSeat> seatSell=new ArrayList<>();
+        }*/
+
         //筛车厢出来--要for循环啊,因为一个订单可能有多个选座信息;筛座位也要在这个里面吗?
         /// 看来之前还是理解不到位,应该是只先筛出来符合座位类型的车厢,具体的座位要在下面去筛选了
         List<DailyTrainCarriage> dailyTrainCarriages=dailyTrainCarriageService
@@ -201,9 +348,7 @@ public class ConfirmOrderService {
                     }
                     seatSell=testSeat(req,ticketSeat);
                     //跳出循环了
-                    if(seatSell!=null){
-                        break;
-                    }
+
                 }
 
                 else {
@@ -265,9 +410,11 @@ public class ConfirmOrderService {
                         List<DailyTrainSeat> typeSeats=dailyTrainSeatService.typeSeat(req.getTrainCode(),req.getDate(),type);
                         //看来逻辑有点混乱啊,这个怎么写到for循环车厢里面了,哈哈,应该要分开的
                         List<DailyTrainSeat> isSell=testSeat2(req,typeSeats,needNum);
-                        if(isSell!=null){
-
+                        if(isSell==null){
+                            throw new RuntimeException("乘客类型 [" + type + "] 余票不足");
                         }
+                        //还不行呢?这个是list的list,写一个for吗?
+                        seatSell.addAll(isSell);
                     }
 
 
@@ -275,12 +422,12 @@ public class ConfirmOrderService {
                     //这个不能写成公共的啊,不选座的需要都查一遍,然后才能确定,需要多次调testseat然后才能去判断,这个只是选座的可以这么去做,不是选座的,用不了这个
                     //需要重写一个方法去判断
 
+                   /*
                    if(seatSell!=null){
-                    //就可以更新数据库了--这个要写成公共的吗?
+                    //就可以更新数据库了--这个要写成公共的吗?---应该是可以的
 
 
-                }
-
+                }*/
 
             }
 

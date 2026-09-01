@@ -63,6 +63,7 @@ public class ConfirmOrderService {
         } else {
             confirmOrder.setUpdateTime(now);
             confirmOrderMapper.updateByPrimaryKey(confirmOrder);
+
         }
     }
 
@@ -121,6 +122,12 @@ public class ConfirmOrderService {
 
         //这个需要写到最前面
         List<DailyTrainSeat> seatSell=new ArrayList<>();
+        //这个作为统一的map吧
+        Map<String, Integer> needTypeMap = new HashMap<>();
+        Map<String,Integer> dbSeatMap=new HashMap<>();
+        int startIndex=dailyTrainStationService.find(req.getStart(), req.getTrainCode(), req.getDate());
+        int endIndex=dailyTrainStationService.find(req.getEnd(), req.getTrainCode(), req.getDate());
+        //还需要一个终点站的站序,但这里没有sell啊
 
 		if(tickets.get(0).getSeat()!=null){
 			//判断余票
@@ -128,6 +135,10 @@ public class ConfirmOrderService {
             if((int) seats<tickets.size()){
                 throw new RuntimeException("余票不足，库存只有 " + seats + " 张");
             }
+
+            //这个需要加一下map了,可以顶替前面的了
+            needTypeMap.put(tickets.get(0).getSeatTypeCode(),tickets.size());
+
             //接下来就是和选座都一样了,就是去
 			List<DailyTrainCarriage> dailyTrainCarriages=dailyTrainCarriageService
                 .getCarraige(tickets.get(0).getSeatTypeCode(),req.getDate(),req.getTrainCode());
@@ -170,7 +181,7 @@ public class ConfirmOrderService {
                             //但是需要单独的处理第一个啊,不然一个循环里面不能统一处理啊
                             ticketSeat.add(dailyTrainSeats.get(index+move.get(j)));
                         }
-                        seatSell=testSeat(req,ticketSeat);
+                        seatSell=testSeat( startIndex, endIndex,ticketSeat);
                         //跳出循环了
                         if(seatSell!=null){
                             break;
@@ -200,10 +211,10 @@ public class ConfirmOrderService {
             // 现在 sumType 里存的是每种 seatTypeCode 出现的次数,ai果然干净利落
             //AI的逻辑分析确实可以啊,非常的利落干净---其实选座的也可以,反而更简单,因为类型一致
             // 1. 第一步：统计出“每种乘客类型各需要几张票”（顺便把 Key 收集了）
-            Map<String, Integer> needTypeMap = new HashMap<>();
+
             for (ConfirmOrderTicketReq ticketReq : tickets) {
                 // 这行代码就是你把 Key（乘客类型）收集起来，并统计数量
-                needTypeMap.merge(ticketReq.getPassengerType(), 1, Integer::sum);
+                needTypeMap.merge(ticketReq.getSeatTypeCode(), 1, Integer::sum);
             }
 
 
@@ -217,7 +228,7 @@ public class ConfirmOrderService {
 
                         dbSeatList.add(dailyTrainSeatService.count(req.getTrainCode(),typeList.get(j)));
                     }*/
-            Map<String,Integer> dbSeatMap=new HashMap<>();
+
             //这个方法确实不知道
             for (String type : needTypeMap.keySet()) {
                 // 这里注意：你 new 的方法是 count(trainCode, seatType)，seatType 对应的是座位类型，不是乘客类型！
@@ -260,8 +271,24 @@ public class ConfirmOrderService {
             //得到的里面有座位类型,直接去更就行了
             //可以先更新座位表,sell那个,fuck,没有对应的mabatis;不行就更新订单表先,也不行
 
+            //这个还有必要吗?seatsell里面都是更新好了的座位了,还需要一个又一个的遍历座位吗?
+            int finalIndex=seatSell.get(0).getSell().length();
             for (DailyTrainSeat dailyTrainSeat:seatSell){
-                //去更新余票表,对应去减一,肯定也没有mabatis了
+                //去更新余票表,对应去减一,肯定也没有mabatis了,这个会复杂一些
+            }
+            //更新余票用的是写进去的map,我需要站序和终点站序啊,这个在前面啊
+            for (Map.Entry<String, Integer> entry : needTypeMap.entrySet()){
+                String type = entry.getKey();        // 乘客类型（这就是你要的 Key）
+                int needNum = entry.getValue();      // 需要几张
+                //然后去更新
+                for (int i = 0; i <= startIndex; i++) {
+                    for (int j = endIndex; j < finalIndex; j++) {
+                        //去改余票信息,从map里面就能得到类型和数目,去数据库里面更新
+                        //在ticket里面写一下方法吧
+
+                    }
+
+                }
             }
 
         }
@@ -285,7 +312,7 @@ public class ConfirmOrderService {
             }
         }*/
 
-        //筛车厢出来--要for循环啊,因为一个订单可能有多个选座信息;筛座位也要在这个里面吗?
+        /*//筛车厢出来--要for循环啊,因为一个订单可能有多个选座信息;筛座位也要在这个里面吗?
         /// 看来之前还是理解不到位,应该是只先筛出来符合座位类型的车厢,具体的座位要在下面去筛选了
         List<DailyTrainCarriage> dailyTrainCarriages=dailyTrainCarriageService
                 .getCarraige(tickets.get(0).getSeatTypeCode(),req.getDate(),req.getTrainCode());
@@ -298,8 +325,8 @@ public class ConfirmOrderService {
         //怎么算来着--先获取座位类型对应的座位排序
         List<SeatColEnum> enums=SeatColEnum.getColsByType(tickets.get(0).getSeatTypeCode());
         //感觉map也可以,用map会复杂度更高吗?就是需要一个自增的东西了,所以会不太好吗?
-        /*HashMap<String,Integer> base=new HashMap<>();
-        int sum=0;*/
+        *//*HashMap<String,Integer> base=new HashMap<>();
+        int sum=0;*//*
         List<String> base=new ArrayList<>();
         for (int i = 1; i <= 2; i++) {
             //还是不理解为什么得到的就是顺序了
@@ -374,7 +401,7 @@ public class ConfirmOrderService {
 
 
 
-                 /*   // 假设你的 Mapper 支持传入 List 批量查询---看来不支持了
+                 *//*   // 假设你的 Mapper 支持传入 List 批量查询---看来不支持了
                     List<String> typeList = new ArrayList<>(needTypeMap.keySet()); // 这就是你要的 Key 集合！
 
                      看来mybatis没有帮助啊
@@ -382,7 +409,7 @@ public class ConfirmOrderService {
                     for (int j = 0; j < typeList.size(); j++) {
 
                         dbSeatList.add(dailyTrainSeatService.count(req.getTrainCode(),typeList.get(j)));
-                    }*/
+                    }*//*
                        Map<String,Integer> dbSeatMap=new HashMap<>();
                        //这个方法确实不知道
                     for (String type : needTypeMap.keySet()) {
@@ -422,12 +449,12 @@ public class ConfirmOrderService {
                     //这个不能写成公共的啊,不选座的需要都查一遍,然后才能确定,需要多次调testseat然后才能去判断,这个只是选座的可以这么去做,不是选座的,用不了这个
                     //需要重写一个方法去判断
 
-                   /*
+                   *//*
                    if(seatSell!=null){
                     //就可以更新数据库了--这个要写成公共的吗?---应该是可以的
 
 
-                }*/
+                }*//*
 
             }
 
@@ -438,7 +465,7 @@ public class ConfirmOrderService {
 
 
 
-        /*for (ConfirmOrderTicketReq ticket:tickets){
+        *//*for (ConfirmOrderTicketReq ticket:tickets){
             //我还真不会用这个switch了呢?不对,需要先把对应的票数的类型统计出来啊,不对不对,这样太麻烦了,直接去查余票数据然后减一就行了
             String seatType=ticket.getSeatTypeCode();
             switch (seatType){
@@ -447,18 +474,18 @@ public class ConfirmOrderService {
             }
             dailyTrainCarriages=dailyTrainCarriageService
                     .getCarraige(ticket.getSeatTypeCode(),req.getDate(), req.getTrainCode());
-        }*/
-
+        }*//*
+*/
     }
 
 
     //这个似乎可以通用啊,这个方法有问题啊,这样处理的只有对选座的才有用,草了,不选座的,需要去传数量
-    public List<DailyTrainSeat> testSeat(ConfirmOrderDoReq req,List<DailyTrainSeat> ticketSeat){
+    public List<DailyTrainSeat> testSeat(int startIndex,int endIndex,List<DailyTrainSeat> ticketSeats){
         //写一个判断座位能不能买的方法吧,根据起始和终点站,这个在ticket里面,奇怪,订单里面居然没有,可以加入这两个字段吗?
         //怎么去找啊?req里面没有啊,怎么根据req里面的string来判断次序呢?用车站表去找吗?又嵌套一次吗?
-        int startIndex=dailyTrainStationService.find(req.getStart(), req.getTrainCode(), req.getDate());
-        int endIndex=dailyTrainStationService.find(req.getEnd(), req.getTrainCode(), req.getDate());
+
         List<DailyTrainSeat> result = new ArrayList<>();
+	    List<DailyTrainSeat> ticketSeat = ticketSeats;
 //        List<String> seatSell=new ArrayList<>();
         for (DailyTrainSeat seat: ticketSeat) {
 
@@ -506,12 +533,13 @@ public class ConfirmOrderService {
     }
 
     //这个似乎可以通用啊,这个方法有问题啊,这样处理的只有对选座的才有用,草了,不选座的,需要去传数量
-    public List<DailyTrainSeat>  testSeat2(ConfirmOrderDoReq req,List<DailyTrainSeat> ticketSeat,int needSum){
+    public List<DailyTrainSeat>  testSeat2(ConfirmOrderDoReq req,List<DailyTrainSeat> ticketSeats,int needSum){
         //写一个判断座位能不能买的方法吧,根据起始和终点站,这个在ticket里面,奇怪,订单里面居然没有,可以加入这两个字段吗?
         //怎么去找啊?req里面没有啊,怎么根据req里面的string来判断次序呢?用车站表去找吗?又嵌套一次吗?
         int startIndex=dailyTrainStationService.find(req.getStart(), req.getTrainCode(), req.getDate());
         int endIndex=dailyTrainStationService.find(req.getEnd(), req.getTrainCode(), req.getDate());
         List<DailyTrainSeat> result = new ArrayList<>();
+        List<DailyTrainSeat> ticketSeat = ticketSeats;
 //        List<String> seatSell=new ArrayList<>();
         for (DailyTrainSeat seat: ticketSeat) {
 
